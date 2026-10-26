@@ -18,6 +18,9 @@ Bản port hoàn chỉnh hệ điều hành âm thanh cao cấp **Volumio 4.0** 
 - **Tiện ích (Plugins Store) & Đăng nhập (MyVolumio):**
   - Mở khóa kho tiện ích công cộng (Public Catalog) không yêu cầu ràng buộc tài khoản hoặc phần cứng độc quyền.
   - Tích hợp cầu nối token `my_volumio` tương thích với giao diện Volumio 4 Bookworm UI.
+- **Hỗ trợ Ổ đĩa mạng CIFS/SMB (NAS Network Storage):**
+  - Tự động nạp module nhân `cifs` (`cifs.ko`, `cifs_arc4.ko`, `cifs_md4.ko`, `nls_ucs2_utils.ko`) ngay khi khởi động.
+  - Hỗ trợ kết nối và duyệt kho nhạc chia sẻ từ Windows Share, Samba Linux, NAS gia đình.
 - **An toàn tuyệt đối cho thiết bị:**
   - Khởi động độc lập 100% từ thẻ MicroSD / USB.
   - Không ghi đè bootloader eMMC, không làm mất Android gốc của Box.
