@@ -1,0 +1,7 @@
+*.img
+*.zip
+*.tar
+*.iso
+*.log
+.DS_Store
+*.tmp

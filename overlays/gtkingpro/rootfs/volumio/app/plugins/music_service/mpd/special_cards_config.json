@@ -1,0 +1,15 @@
+{
+  "Music Hall A30.3": [
+    "period_time \"10\"",
+    "buffer_time \"60000\""
+  ],
+  "SEI501 AV 3.5 mm": [
+    "always_on \"yes\""
+  ],
+  "SEI501 Optical SPDIF": [
+    "always_on \"yes\""
+  ],
+  "GT-King Pro ES9018 DAC (3.5mm)": [
+    "always_on \"yes\""
+  ]
+}

@@ -1,0 +1,59 @@
+#!/bin/sh
+# Beelink GT-King Pro Audio & ES9018 DAC Hardware Initializer
+
+# Detect card number or ID for GT-King Pro
+CARD=""
+if aplay -l 2>/dev/null | grep -q "GTKINGPRO"; then
+  CARD="GTKINGPRO"
+elif aplay -l 2>/dev/null | grep -q "card 0"; then
+  CARD="0"
+fi
+
+if [ -z "$CARD" ]; then
+  exit 0
+fi
+
+# 0. Hardware Audio Clocks & Headphone Mute Initialization
+python3 -c "
+import mmap, os, struct
+try:
+    fd = os.open('/dev/mem', os.O_RDWR | os.O_SYNC)
+    # Audio clock controller: route TDM-B to PAD0 & PAD1
+    clk = mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=0xff642000)
+    clk[0x1c:0x20] = struct.pack('<I', 0x00000011) # MCLK PAD0 & PAD1 -> MST_B_MCLK
+    clk[0x20:0x24] = struct.pack('<I', 0x00110011) # SCLK & LRCLK PAD0 & PAD1 -> MST_B
+    clk.close()
+    # GPIOAO: un-mute 3.5mm jack (GPIOAO_2 = LOW / 0V)
+    ao = mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=0xff800000)
+    out_val = struct.unpack('<I', ao[0x34:0x38])[0] & ~(1 << 2)
+    ao[0x34:0x38] = struct.pack('<I', out_val)
+    ao.close()
+    os.close(fd)
+except Exception:
+    pass
+" 2>/dev/null || true
+
+# 1. Route Device 1 (FRDDR_B) -> TDMOUT_B -> TDM-B (I2S to ESS ES9018 Dual DAC)
+/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SINK 1 SEL" "OUT 1" || true
+/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SRC 1 EN Switch" on || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 1" || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" off || true
+
+# 2. Route Device 0 (FRDDR_A) -> TOHDMITX (HDMI Audio)
+/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 0" || true
+/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SRC 1 EN Switch" on || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" on || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S B" || true
+
+# 3. Internal ACODEC (Line out 3.5mm)
+/usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC SRC" "I2S B" || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" on || true
+/usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" on || true
+/usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Volume" 255,255 || true
+
+# 4. Save ALSA state so settings persist
+/usr/sbin/alsactl store "$CARD" 2>/dev/null || true
+
+exit 0

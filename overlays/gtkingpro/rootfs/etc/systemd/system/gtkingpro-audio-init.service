@@ -1,0 +1,14 @@
+[Unit]
+Description=Beelink GT-King Pro Audio and ES9018 DAC Route Initializer
+DefaultDependencies=no
+After=sound.target local-fs.target
+Before=mpd.service volumio.service
+ConditionPathExists=/usr/local/sbin/gtkingpro-audio-init
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/gtkingpro-audio-init
+
+[Install]
+WantedBy=sound.target multi-user.target
