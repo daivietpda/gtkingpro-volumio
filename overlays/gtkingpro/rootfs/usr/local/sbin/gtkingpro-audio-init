@@ -39,7 +39,7 @@ except Exception:
 /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 1" || true
 /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
 /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" off || true
+/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
 
 # 2. Route Device 0 (FRDDR_A) -> TOHDMITX (HDMI Audio)
 /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 0" || true
