@@ -9,6 +9,9 @@
   "SEI501 Optical SPDIF": [
     "always_on \"yes\""
   ],
+  "GT-King Pro HDMI": [
+    "always_on \"yes\""
+  ],
   "GT-King Pro ES9018 DAC (3.5mm)": [
     "always_on \"yes\""
   ]

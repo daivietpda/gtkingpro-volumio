@@ -61,7 +61,7 @@ try:
     # GPIOAO: Control 3.5mm headphone mute relay/switch (GPIOAO_2)
     ao = mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=0xff800000)
     val = struct.unpack('<I', ao[0x34:0x38])[0]
-    if target_dev == 1:
+    if target_dev == 1 or target_dev == 0:
         val &= ~(1 << 2)  # LOW = un-mute 3.5mm analog
     else:
         val |= (1 << 2)   # HIGH = mute 3.5mm analog
@@ -115,14 +115,21 @@ elif [ "$TARGET_DEV" -eq 0 ]; then
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SRC 1 EN Switch" on || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 0" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
-  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
+
+  # Ensure hardware volume is initialized
+  VOL_LANE0=$(/usr/bin/amixer -c "$CARD" cget "name=TDMOUT_B Lane 0 Volume" 2>/dev/null | grep ": values=" | cut -d'=' -f2)
+  if [ "$VOL_LANE0" = "0,0" ] || [ -z "$VOL_LANE0" ]; then
+    /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
+  fi
   /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S B" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" on || true
 
-  # Mute 3.5mm DAC & ACODEC
-  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" off || true
-  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" off || true
+  # Keep 3.5mm DAC & ACODEC active in sync with HDMI
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC SRC" "I2S B" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Volume" 255,255 || true
 
   # Disable Optical SPDIF output
   /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" off || true
