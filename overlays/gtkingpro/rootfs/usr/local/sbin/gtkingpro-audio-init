@@ -41,7 +41,7 @@ case "$TARGET_DEV" in
 esac
 
 # -------------------------------------------------------------------------
-# Step 1: Base Clock & Hardware Routing (TDM-B, Audio Clock Controller, GPIO Mute)
+# Step 1: Base Clock & Hardware GPIO Mute (requires root / sudo)
 # -------------------------------------------------------------------------
 # GPIOAO_2 logic:
 #   Device 1 (ES9018 DAC): GPIOAO_2 = LOW (0V) -> Unmute 3.5mm Jack
@@ -62,9 +62,9 @@ try:
     ao = mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=0xff800000)
     val = struct.unpack('<I', ao[0x34:0x38])[0]
     if target_dev == 1:
-        val &= ~(1 << 2)
+        val &= ~(1 << 2)  # LOW = un-mute 3.5mm analog
     else:
-        val |= (1 << 2)
+        val |= (1 << 2)   # HIGH = mute 3.5mm analog
     ao[0x34:0x38] = struct.pack('<I', val)
     ao.close()
     os.close(fd)
@@ -85,7 +85,7 @@ if [ "$TARGET_DEV" -eq 1 ]; then
   /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 1" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
 
-  # Set initial hardware volume if 0
+  # Ensure hardware volume is initialized
   VOL_LANE0=$(/usr/bin/amixer -c "$CARD" cget "name=TDMOUT_B Lane 0 Volume" 2>/dev/null | grep ": values=" | cut -d'=' -f2)
   if [ "$VOL_LANE0" = "0,0" ] || [ -z "$VOL_LANE0" ]; then
     /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
@@ -98,23 +98,27 @@ if [ "$TARGET_DEV" -eq 1 ]; then
   /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" on || true
   /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Volume" 255,255 || true
 
-  # Disable HDMI output & isolate I2S B from TOHDMITX (prevents audio leak to TV)
+  # Disable HDMI output (prevents audio leak to TV)
   /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" off || true
-  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
 
   # Disable Optical SPDIF output
   /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 1 EN Switch" off || true
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" off || true
 
 elif [ "$TARGET_DEV" -eq 0 ]; then
   # =========================================================================
-  # MODE 0: GT-King Pro HDMI
+  # MODE 0: GT-King Pro HDMI (Device 0)
   # =========================================================================
-  # Route Device 0 (FRDDR_A) -> TOHDMITX (HDMI Audio)
-  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 0" || true
+  # Route Device 0 (FRDDR_A) -> TDMOUT_B (IN 0) -> I2S B -> TOHDMITX (HDMI Audio)
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 1" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SRC 1 EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 0" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S B" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" on || true
-  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
 
   # Mute 3.5mm DAC & ACODEC
   /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" off || true
@@ -122,13 +126,16 @@ elif [ "$TARGET_DEV" -eq 0 ]; then
 
   # Disable Optical SPDIF output
   /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 1 EN Switch" off || true
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" off || true
 
 elif [ "$TARGET_DEV" -eq 2 ]; then
   # =========================================================================
-  # MODE 2: GT-King Pro Optical SPDIF
+  # MODE 2: GT-King Pro Optical SPDIF (Device 2)
   # =========================================================================
   # Route Device 2 (FRDDR_C) -> SPDIFOUT_A -> TOSLINK Optical Port
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SINK 1 SEL" "OUT 3" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 1 EN Switch" on || true
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SINK 3 SEL" "OUT 3" || true
   /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" on || true
   /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A SRC SEL" "IN 2" || true
@@ -142,7 +149,6 @@ elif [ "$TARGET_DEV" -eq 2 ]; then
 
   # Mute HDMI
   /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" off || true
-  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
 fi
 
 # Save ALSA state
