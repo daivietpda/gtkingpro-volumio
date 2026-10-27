@@ -188,4 +188,13 @@ except Exception: pass
   fi
 fi
 
+# Ensure Glass asound directory and template snippet are always in place
+if [ -d "/data/plugins/user_interface/glass" ]; then
+  mkdir -p /data/plugins/user_interface/glass/asound
+  if [ ! -f "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf" ] && [ -f "/data/plugins/user_interface/glass/Glass.postGlass.5.conf.tmpl" ]; then
+    cp "/data/plugins/user_interface/glass/Glass.postGlass.5.conf.tmpl" "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf"
+    chown volumio:volumio "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf" 2>/dev/null || true
+  fi
+fi
+
 exit 0

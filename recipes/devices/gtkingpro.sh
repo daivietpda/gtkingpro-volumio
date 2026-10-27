@@ -109,6 +109,9 @@ device_image_tweaks() {
     mkdir -p "${glass_target}"
     unzip -q -o "${glass_zip}" -d "${glass_target}"
     chmod +x "${glass_target}/bin/"*/* "${glass_target}/run_glass.sh" 2>/dev/null || true
+    mkdir -p "${glass_target}/asound"
+    cp "${glass_target}/Glass.postGlass.5.conf.tmpl" "${glass_target}/asound/Glass.postGlass.5.conf" 2>/dev/null || true
+    sed -i "s|var asoundConf = __dirname + '/asound' + asound;|try { fs.mkdirSync(__dirname + '/asound', { recursive: true }); } catch (e) {}; var asoundConf = __dirname + '/asound' + asound;|" "${glass_target}/index.js" 2>/dev/null || true
   fi
 }
 
