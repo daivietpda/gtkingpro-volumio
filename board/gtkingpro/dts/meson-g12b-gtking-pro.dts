@@ -271,7 +271,7 @@
 };
 
 &spdifout_a {
-	pinctrl-0 = <&spdif_out_h_pins>, <&spdif_out_a11_pins>, <&spdif_out_a13_pins>;
+	pinctrl-0 = <&spdif_ao_out_pins>, <&spdif_out_h_pins>, <&spdif_out_a11_pins>, <&spdif_out_a13_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };

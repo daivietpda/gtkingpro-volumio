@@ -10,7 +10,10 @@ Bản port hoàn chỉnh hệ điều hành âm thanh cao cấp **Volumio 4.0** 
   - Hỗ trợ giải mã phần cứng qua cổng tai nghe 3.5mm Analog Audio Jack.
   - Tích hợp điều khiển mạch Mute Transistor (`GPIOAO_2`) và Power Amp (`GPIOA_6`) tự động, loại bỏ hoàn toàn tiếng nổ bụp (pop/click) khi khởi động hoặc chuyển bài.
   - TDM-B Clock Pad định tuyến chuẩn xác (`AUD_CLKID_TDM_MCLK_PAD0`, `AUD_CLKID_TDM_SCLK_PAD1`, `AUD_CLKID_TDM_LRCLK_PAD1`).
-  - Hỗ trợ đa thiết bị ra âm thanh: HDMI Audio (Card 0, Device 0) và 3.5mm DAC Hi-Fi (Card 0, Device 1).
+  - **Hỗ trợ 3 cổng xuất âm thanh độc lập, chuẩn hoá và cách ly hoàn toàn:**
+    - **GT-King Pro HDMI (Card 0, Device 0):** Xuất âm thanh số qua HDMI ra TV/AV Receiver; tự động ngắt cổng 3.5mm.
+    - **GT-King Pro ES9018 DAC (Card 0, Device 1):** Xuất âm thanh Hi-Fi analog qua cổng tai nghe 3.5mm với chip giải mã kép ESS ES9018K2M; tự động tắt luồng HDMI tránh rò rỉ âm thanh ra TV.
+    - **GT-King Pro Optical SPDIF (Card 0, Device 2):** Xuất âm thanh số biphase qua cổng quang Optical TOSLINK (`GPIOAO_10` / `spdif_ao_out`) ra DAC ngoài / Amply cao cấp.
 - **Điều khiển âm lượng phần cứng (Hardware Volume Control):**
   - Tích hợp điều khiển âm lượng phần cứng Native ALSA (`TDMOUT_B Lane 0`) độc quyền cho chip DAC ESS ES9018.
   - Tự động nhận diện Mixer Phần cứng trong Volumio Settings, điều khiển mượt mà từ thanh trượt giao diện, App Volumio hoặc núm xoay/remote mà không làm giảm bit-depth / chất lượng âm thanh bit-perfect.
