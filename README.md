@@ -92,3 +92,19 @@ Trong Web Manager, vào tab **Themes / Download**:
 ## 👤 Tác giả & Đóng góp
 - Port & Tối ưu hóa bởi **daivietpda**.
 
+---
+
+## ⚖️ Giấy phép & Dẫn nguồn (License & Acknowledgments)
+
+Dự án này là bản port cộng đồng phi thương mại được phân phối theo giấy phép **GNU General Public License v3.0 (GPL-3.0)**. Xem chi tiết tại [LICENSE](file:///mnt/wsl/PHYSICALDRIVE5p1/gtkingpro-volumio/LICENSE).
+
+Xin gửi lời cảm ơn chân thành đến các dự án và tác giả mã nguồn mở:
+- **[Volumio](https://volumio.com)** – Hệ điều hành âm thanh Hi-Fi mã nguồn mở tuyệt vời (GPL-3.0).
+- **[Yolun](https://github.com/yolun)** – Tác giả của **Glass Engine**, mang đến giải pháp hiển thị HDMI & PeppyMeter VU meter cực kỳ mượt mà.
+- **[Peppy.player / PeppyMeter](https://github.com/project-owner/PeppyMeter.doc)** – Dự án đồng hồ VU huyền thoại cho các thiết bị âm thanh DIY.
+- **Cộng đồng Linux Amlogic, Armbian & LibreELEC** – Các lập trình viên và cộng đồng đã duy trì mã nguồn Device Tree và Driver cho SoC Amlogic S922X / Meson G12B.
+
+### ⚠️ Tuyên bố từ chối trách nhiệm (Disclaimer)
+- Đây là bản phát hành độc lập từ cộng đồng, không có liên kết chính thức hay tài trợ từ **Volumio srl** hoặc **Beelink**.
+- **Volumio** và các logo liên quan là thương hiệu đã đăng ký của Volumio srl.
+- Bản dựng được cung cấp "nguyên trạng" (as-is), không có bảo hành phần cứng đi kèm. Người dùng tự chịu trách nhiệm khi nạp phần mềm lên thiết bị của mình.
