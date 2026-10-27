@@ -80,7 +80,11 @@ device_image_tweaks() {
   chown -R root:root "${ROOTFSMNT}/etc/systemd/system"
   chown root:root "${ROOTFSMNT}/usr/local/sbin/gtkingpro-audio-init"
   chmod 755 "${ROOTFSMNT}/usr/local/sbin/gtkingpro-audio-init"
-  chown -R volumio:volumio "${ROOTFSMNT}/volumio"
+  chown -R 1000:1000 "${ROOTFSMNT}/volumio"
+  if [[ -d "${ROOTFSMNT}/data" ]]; then
+    chown -R 1000:1000 "${ROOTFSMNT}/data"
+    chmod 777 "${ROOTFSMNT}/data/INTERNAL" 2>/dev/null || true
+  fi
 
   local env_file="${ROOTFSMNT}/volumio/.env"
   if [[ -f "${env_file}" ]]; then
