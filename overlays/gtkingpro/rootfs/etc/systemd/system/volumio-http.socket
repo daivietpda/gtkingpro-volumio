@@ -4,6 +4,7 @@ Description=Volumio HTTP port 80 socket
 [Socket]
 ListenStream=80
 NoDelay=true
+TriggerLimitIntervalSec=0
 
 [Install]
 WantedBy=sockets.target

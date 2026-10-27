@@ -193,8 +193,13 @@ if [ -d "/data/plugins/user_interface/glass" ]; then
   mkdir -p /data/plugins/user_interface/glass/asound
   if [ ! -f "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf" ] && [ -f "/data/plugins/user_interface/glass/Glass.postGlass.5.conf.tmpl" ]; then
     cp "/data/plugins/user_interface/glass/Glass.postGlass.5.conf.tmpl" "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf"
-    chown volumio:volumio "/data/plugins/user_interface/glass/asound/Glass.postGlass.5.conf" 2>/dev/null || true
   fi
+fi
+
+# Always guarantee volumio ownership on /data so volumio backend never gets EACCES
+if [ -d "/data" ]; then
+  chown -R volumio:volumio /data
+  chmod 777 /data/INTERNAL 2>/dev/null || true
 fi
 
 exit 0

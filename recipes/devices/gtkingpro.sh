@@ -73,6 +73,15 @@ device_image_tweaks() {
     rsync -a "${overlay}/lib/firmware/" "${ROOTFSMNT}/usr/lib/firmware/"
   fi
 
+  # Ensure all overlay permissions and ownerships are strictly standard
+  chown -R root:root "${ROOTFSMNT}/etc/sudoers.d"
+  chmod 750 "${ROOTFSMNT}/etc/sudoers.d"
+  chmod 440 "${ROOTFSMNT}/etc/sudoers.d/"*
+  chown -R root:root "${ROOTFSMNT}/etc/systemd/system"
+  chown root:root "${ROOTFSMNT}/usr/local/sbin/gtkingpro-audio-init"
+  chmod 755 "${ROOTFSMNT}/usr/local/sbin/gtkingpro-audio-init"
+  chown -R volumio:volumio "${ROOTFSMNT}/volumio"
+
   local env_file="${ROOTFSMNT}/volumio/.env"
   if [[ -f "${env_file}" ]]; then
     sed -i '/^SINGLE_NETWORK_MODE=/d' "${env_file}"
