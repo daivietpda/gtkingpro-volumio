@@ -65,6 +65,14 @@
 		regulator-always-on;
 	};
 
+	/* S/PDIF Digital Audio Transmitter (Optical TOSLINK) */
+	spdif_dit: audio-codec-2 {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+		sound-name-prefix = "DIT";
+		status = "okay";
+	};
+
 	sound {
 		compatible = "amlogic,axg-sound-card";
 		model = "GTKING-PRO";
@@ -72,7 +80,10 @@
 		audio-routing = "TDMOUT_B IN 0", "FRDDR_A OUT 1",
 				"TDMOUT_B IN 1", "FRDDR_B OUT 1",
 				"TDMOUT_B IN 2", "FRDDR_C OUT 1",
-				"TDM_B Playback", "TDMOUT_B OUT";
+				"TDM_B Playback", "TDMOUT_B OUT",
+				"SPDIFOUT_A IN 0", "FRDDR_A OUT 3",
+				"SPDIFOUT_A IN 1", "FRDDR_B OUT 3",
+				"SPDIFOUT_A IN 2", "FRDDR_C OUT 3";
 
 		clocks = <&clkc CLKID_MPLL2>,
 			 <&clkc CLKID_MPLL0>,
@@ -127,6 +138,19 @@
 
 			codec {
 				sound-dai = <&acodec>;
+			};
+		};
+
+		/* S/PDIF Optical TOSLINK & S/PDIF HDMI */
+		dai-link-6 {
+			sound-dai = <&spdifout_a>;
+
+			codec-0 {
+				sound-dai = <&spdif_dit>;
+			};
+
+			codec-1 {
+				sound-dai = <&tohdmitx TOHDMITX_SPDIF_IN_A>;
 			};
 		};
 	};
@@ -245,5 +269,12 @@
 		interrupt-names = "host-wake";
 	};
 };
+
+&spdifout_a {
+	pinctrl-0 = <&spdif_out_h_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
 
 

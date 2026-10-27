@@ -1,7 +1,10 @@
 #!/bin/sh
 # Beelink GT-King Pro Audio & ES9018 DAC Hardware Initializer
+# Supports 3 discrete audio output modes:
+#   0: GT-King Pro HDMI (Device 0)
+#   1: GT-King Pro ES9018 DAC 3.5mm (Device 1)
+#   2: GT-King Pro Optical SPDIF (Device 2)
 
-# Detect card number or ID for GT-King Pro
 CARD=""
 if aplay -l 2>/dev/null | grep -q "GTKINGPRO"; then
   CARD="GTKINGPRO"
@@ -13,9 +16,40 @@ if [ -z "$CARD" ]; then
   exit 0
 fi
 
-# 0. Hardware Audio Clocks & Headphone Mute Initialization
+# Determine target audio device (0=HDMI, 1=ES9018 DAC, 2=SPDIF)
+TARGET_DEV="$1"
+if [ -z "$TARGET_DEV" ]; then
+  CONFIG_FILE="/data/configuration/audio_interface/alsa_controller/config.json"
+  if [ -f "$CONFIG_FILE" ]; then
+    TARGET_DEV=$(python3 -c "
+import json
+try:
+    with open('$CONFIG_FILE') as f:
+        d = json.load(f)
+    print(d.get('outputdevicealsadevice', {}).get('value', 1))
+except Exception:
+    print(1)
+" 2>/dev/null)
+  else
+    TARGET_DEV=1
+  fi
+fi
+
+case "$TARGET_DEV" in
+  0|1|2) ;;
+  *) TARGET_DEV=1 ;;
+esac
+
+# -------------------------------------------------------------------------
+# Step 1: Base Clock & Hardware Routing (TDM-B, Audio Clock Controller, GPIO Mute)
+# -------------------------------------------------------------------------
+# GPIOAO_2 logic:
+#   Device 1 (ES9018 DAC): GPIOAO_2 = LOW (0V) -> Unmute 3.5mm Jack
+#   Device 0 (HDMI) / 2 (SPDIF): GPIOAO_2 = HIGH (3.3V) -> Mute 3.5mm Jack (no leak / no noise)
 python3 -c "
 import mmap, os, struct
+
+target_dev = $TARGET_DEV
 try:
     fd = os.open('/dev/mem', os.O_RDWR | os.O_SYNC)
     # Audio clock controller: route TDM-B to PAD0 & PAD1
@@ -23,40 +57,100 @@ try:
     clk[0x1c:0x20] = struct.pack('<I', 0x00000011) # MCLK PAD0 & PAD1 -> MST_B_MCLK
     clk[0x20:0x24] = struct.pack('<I', 0x00110011) # SCLK & LRCLK PAD0 & PAD1 -> MST_B
     clk.close()
-    # GPIOAO: un-mute 3.5mm jack (GPIOAO_2 = LOW / 0V)
+
+    # GPIOAO: Control 3.5mm headphone mute relay/switch (GPIOAO_2)
     ao = mmap.mmap(fd, 4096, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=0xff800000)
-    out_val = struct.unpack('<I', ao[0x34:0x38])[0] & ~(1 << 2)
-    ao[0x34:0x38] = struct.pack('<I', out_val)
+    val = struct.unpack('<I', ao[0x34:0x38])[0]
+    if target_dev == 1:
+        val &= ~(1 << 2)
+    else:
+        val |= (1 << 2)
+    ao[0x34:0x38] = struct.pack('<I', val)
     ao.close()
     os.close(fd)
 except Exception:
     pass
 " 2>/dev/null || true
 
-# 1. Route Device 1 (FRDDR_B) -> TDMOUT_B -> TDM-B (I2S to ESS ES9018 Dual DAC)
-/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SINK 1 SEL" "OUT 1" || true
-/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SRC 1 EN Switch" on || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 1" || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
+# -------------------------------------------------------------------------
+# Step 2: Apply Discrete Route Configurations based on TARGET_DEV
+# -------------------------------------------------------------------------
+if [ "$TARGET_DEV" -eq 1 ]; then
+  # =========================================================================
+  # MODE 1: GT-King Pro ES9018 DAC (3.5mm Analog Output)
+  # =========================================================================
+  # Route Device 1 (FRDDR_B) -> TDMOUT_B -> ESS ES9018 Dual DAC
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SINK 1 SEL" "OUT 1" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_B SRC 1 EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B SRC SEL" "IN 1" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Gain Enable Switch" on || true
 
-# 2. Route Device 0 (FRDDR_A) -> TOHDMITX (HDMI Audio)
-/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 0" || true
-/usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SRC 1 EN Switch" on || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" on || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S B" || true
+  # Set initial hardware volume if 0
+  VOL_LANE0=$(/usr/bin/amixer -c "$CARD" cget "name=TDMOUT_B Lane 0 Volume" 2>/dev/null | grep ": values=" | cut -d'=' -f2)
+  if [ "$VOL_LANE0" = "0,0" ] || [ -z "$VOL_LANE0" ]; then
+    /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 0 Volume" 255,255 || true
+  fi
+  /usr/bin/amixer -q -c "$CARD" cset "name=TDMOUT_B Lane 1 Volume" 255,255 || true
 
-# 3. Internal ACODEC (Line out 3.5mm)
-/usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC SRC" "I2S B" || true
-/usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" on || true
-/usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" on || true
-/usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Volume" 255,255 || true
+  # Internal ACODEC (Line out 3.5mm auxiliary)
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC SRC" "I2S B" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Volume" 255,255 || true
 
-# 4. Save ALSA state so settings persist
+  # Disable HDMI output & isolate I2S B from TOHDMITX (prevents audio leak to TV)
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
+
+  # Disable Optical SPDIF output
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" off || true
+
+elif [ "$TARGET_DEV" -eq 0 ]; then
+  # =========================================================================
+  # MODE 0: GT-King Pro HDMI
+  # =========================================================================
+  # Route Device 0 (FRDDR_A) -> TOHDMITX (HDMI Audio)
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SINK 1 SEL" "OUT 0" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_A SRC 1 EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
+
+  # Mute 3.5mm DAC & ACODEC
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" off || true
+
+  # Disable Optical SPDIF output
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" off || true
+
+elif [ "$TARGET_DEV" -eq 2 ]; then
+  # =========================================================================
+  # MODE 2: GT-King Pro Optical SPDIF
+  # =========================================================================
+  # Route Device 2 (FRDDR_C) -> SPDIFOUT_A -> TOSLINK Optical Port
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SINK 3 SEL" "OUT 3" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=FRDDR_C SRC 3 EN Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A SRC SEL" "IN 2" || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Switch" on || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Volume" 255,255 || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=SPDIFOUT_A Playback Gain Enable Switch" on || true
+
+  # Mute 3.5mm DAC & ACODEC
+  /usr/bin/amixer -q -c "$CARD" cset "name=ACODEC Playback Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOACODEC OUT EN Switch" off || true
+
+  # Mute HDMI
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX Switch" off || true
+  /usr/bin/amixer -q -c "$CARD" cset "name=TOHDMITX I2S SRC" "I2S A" || true
+fi
+
+# Save ALSA state
 /usr/sbin/alsactl store "$CARD" 2>/dev/null || true
 
-# 5. First-boot initialization for Glass Engine (HDMI VU Meter)
+# -------------------------------------------------------------------------
+# Step 3: First-boot initialization for Glass Engine (HDMI VU Meter)
+# -------------------------------------------------------------------------
 if [ ! -d "/data/plugins/user_interface/glass" ] && [ -d "/volumio/app/plugins/user_interface/glass" ]; then
   mkdir -p /data/plugins/user_interface /data/INTERNAL/glass /data/configuration/user_interface/glass
   cp -rn /volumio/app/plugins/user_interface/glass /data/plugins/user_interface/

@@ -878,6 +878,14 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
             }
           });
         }
+        if (self.config.get('outputdevicecardname') === 'GTKINGPRO' || self.config.get('outputdevicecardname') === 'GTKING-PRO') {
+          var devNum = self.config.get('outputdevicealsadevice');
+          exec('/usr/local/sbin/gtkingpro-audio-init ' + devNum, function (error) {
+            if (error) {
+              self.logger.warn('Cannot enable GT-King Pro audio routes: ' + error);
+            }
+          });
+        }
         return result;
       });
   } else {
