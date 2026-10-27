@@ -82,7 +82,7 @@ Trong Web Manager, vào tab **Themes / Download**:
 
 ## 🚀 Hướng dẫn cài đặt
 
-1. Tải bản dựng image mới nhất từ mục **Releases** (`Volumio-4.0-gtkingpro-v1.2.zip`).
+1. Tải bản dựng image mới nhất từ mục **Releases** (`Volumio-4.0-gtkingpro-v1.3.zip`).
 2. Giải nén file `.zip` để lấy file `.img`.
 3. Ghi file image vào thẻ nhớ MicroSD (tối thiểu 8GB) bằng phần mềm **Rufus** hoặc **BalenaEtcher**.
 4. Cắm thẻ MicroSD vào Beelink GT-King Pro:
