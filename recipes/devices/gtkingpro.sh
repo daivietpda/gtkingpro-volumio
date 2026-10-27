@@ -29,7 +29,7 @@ BOOT_USE_UUID=yes
 INIT_TYPE="initv3"
 
 MODULES=("overlay" "squashfs" "nls_cp437" "nls_utf8")
-PACKAGES=("iw" "wireless-regdb" "wpasupplicant" "alsa-utils")
+PACKAGES=("iw" "wireless-regdb" "wpasupplicant" "alsa-utils" "libsdl2-2.0-0" "libegl1" "libgl1" "libgl1-mesa-dri")
 
 write_device_files() {
   log "Installing GT-King Pro boot files, modules and firmware" "ext"
@@ -95,6 +95,21 @@ device_image_tweaks() {
     "${ROOTFSMNT}/etc/systemd/system/sockets.target.wants/volumio-http.socket"
 
   rm -f "${ROOTFSMNT}/etc/systemd/system/multi-user.target.wants/iptables.service"
+
+  # Pre-install Glass Engine for HDMI visualizer & VU meters
+  local glass_zip="${SRC}/../../board/gtkingpro/packages/glass-0.10.38.zip"
+  if [[ ! -f "${glass_zip}" ]]; then
+    log "Downloading Glass Engine package..." "cfg"
+    mkdir -p "$(dirname "${glass_zip}")"
+    curl -sSL -o "${glass_zip}" "https://raw.githubusercontent.com/yolun/glass-distribution/main/release/0.10.38/glass-0.10.38.zip" || true
+  fi
+  if [[ -f "${glass_zip}" ]]; then
+    log "Pre-installing Glass Engine into image" "cfg"
+    local glass_target="${ROOTFSMNT}/volumio/app/plugins/user_interface/glass"
+    mkdir -p "${glass_target}"
+    unzip -q -o "${glass_zip}" -d "${glass_target}"
+    chmod +x "${glass_target}/bin/"*/* "${glass_target}/run_glass.sh" 2>/dev/null || true
+  fi
 }
 
 device_chroot_tweaks_pre() {

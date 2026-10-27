@@ -56,4 +56,29 @@ except Exception:
 # 4. Save ALSA state so settings persist
 /usr/sbin/alsactl store "$CARD" 2>/dev/null || true
 
+# 5. First-boot initialization for Glass Engine (HDMI VU Meter)
+if [ ! -d "/data/plugins/user_interface/glass" ] && [ -d "/volumio/app/plugins/user_interface/glass" ]; then
+  mkdir -p /data/plugins/user_interface /data/INTERNAL/glass /data/configuration/user_interface/glass
+  cp -rn /volumio/app/plugins/user_interface/glass /data/plugins/user_interface/
+  ln -sf /data/plugins/user_interface/glass/lib/armv7/libglasstap.so /data/plugins/user_interface/glass/lib/libglasstap.so 2>/dev/null || true
+  if [ -f "/volumio/app/plugins/user_interface/glass/config.json" ]; then
+    cp -n /volumio/app/plugins/user_interface/glass/config.json /data/configuration/user_interface/glass/config.json 2>/dev/null || true
+  fi
+  chown -R volumio:volumio /data/plugins/user_interface/glass /data/INTERNAL/glass /data/configuration/user_interface/glass 2>/dev/null || true
+  if [ -f "/data/configuration/plugins.json" ]; then
+    python3 -c "
+import json
+try:
+    with open('/data/configuration/plugins.json') as f:
+        d = json.load(f)
+    if 'user_interface' not in d: d['user_interface'] = {}
+    if 'glass' not in d['user_interface']:
+        d['user_interface']['glass'] = {'enabled': {'type': 'boolean', 'value': True}, 'status': {'type': 'string', 'value': 'STARTED'}}
+        with open('/data/configuration/plugins.json', 'w') as f:
+            json.dump(d, f, indent=2)
+except Exception: pass
+" 2>/dev/null || true
+  fi
+fi
+
 exit 0

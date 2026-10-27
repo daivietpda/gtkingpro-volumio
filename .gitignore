@@ -1,7 +1,9 @@
 *.img
 *.zip
+!board/gtkingpro/packages/*.zip
 *.tar
 *.iso
 *.log
 .DS_Store
 *.tmp
+

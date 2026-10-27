@@ -181,6 +181,16 @@
         "type": "string",
         "value": "STARTED"
       }
+    },
+    "glass": {
+      "enabled": {
+        "type": "boolean",
+        "value": true
+      },
+      "status": {
+        "type": "string",
+        "value": "STARTED"
+      }
     }
   },
   "system_controller": {
