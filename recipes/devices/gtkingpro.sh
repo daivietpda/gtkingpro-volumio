@@ -142,6 +142,7 @@ device_chroot_tweaks_pre() {
 abi.cp15_barrier=2
 EOF
   sed -i "s/^MODULES=.*/MODULES=list/" /etc/initramfs-tools/initramfs.conf
+  usermod -a -G render,video volumio 2>/dev/null || true
 }
 
 device_chroot_tweaks_post() {

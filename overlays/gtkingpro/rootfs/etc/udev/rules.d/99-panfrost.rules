@@ -1,0 +1,3 @@
+KERNEL=="renderD*", GROUP="render", MODE="0666"
+KERNEL=="card*", GROUP="video", MODE="0666"
+

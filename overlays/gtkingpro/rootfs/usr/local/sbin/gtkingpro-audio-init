@@ -202,4 +202,8 @@ if [ -d "/data" ]; then
   chmod 777 /data/INTERNAL 2>/dev/null || true
 fi
 
+# Ensure volumio user has GPU render access for Mali-G52 Panfrost acceleration
+usermod -a -G render,video volumio 2>/dev/null || true
+chmod 666 /dev/dri/card* /dev/dri/renderD* 2>/dev/null || true
+
 exit 0
