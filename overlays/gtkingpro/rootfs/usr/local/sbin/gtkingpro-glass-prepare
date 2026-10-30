@@ -1,0 +1,14 @@
+#!/bin/sh
+# Glass expects its plugin directory under /data even when shipped in the image.
+set -eu
+source_dir=/volumio/app/plugins/user_interface/glass
+target_dir=/data/plugins/user_interface/glass
+[ -f "$source_dir/run_glass.sh" ] || exit 0
+mkdir -p /data/plugins/user_interface /data/INTERNAL/glass /data/configuration/user_interface/glass
+if [ ! -e "$target_dir" ] && [ ! -L "$target_dir" ]; then
+  ln -s "$source_dir" "$target_dir"
+fi
+ln -sfn armv7/libglasstap.so "$source_dir/lib/libglasstap.so" 2>/dev/null || true
+if [ -f "$source_dir/config.json" ] && [ ! -f /data/configuration/user_interface/glass/config.json ]; then
+  cp "$source_dir/config.json" /data/configuration/user_interface/glass/config.json
+fi

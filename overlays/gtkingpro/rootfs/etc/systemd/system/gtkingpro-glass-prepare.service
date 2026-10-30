@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare Glass plugin data path
+After=local-fs.target
+Before=volumio.service
+
+[Service]
+Type=oneshot
+User=volumio
+ExecStart=/usr/local/sbin/gtkingpro-glass-prepare
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

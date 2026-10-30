@@ -97,10 +97,12 @@ device_image_tweaks() {
   test -f "${ROOTFSMNT}/etc/systemd/system/gtkingpro-audio-init.service"
   test -f "${ROOTFSMNT}/volumio/app/plugins/audio_interface/alsa_controller/cards.json"
 
-  # Enable audio init service
+  # Enable audio init service & glass prepare service
   install -d "${ROOTFSMNT}/etc/systemd/system/multi-user.target.wants"
   ln -sfn ../gtkingpro-audio-init.service \
     "${ROOTFSMNT}/etc/systemd/system/multi-user.target.wants/gtkingpro-audio-init.service"
+  ln -sfn ../gtkingpro-glass-prepare.service \
+    "${ROOTFSMNT}/etc/systemd/system/multi-user.target.wants/gtkingpro-glass-prepare.service"
 
   # Port 80 systemd-socket-proxyd
   install -d "${ROOTFSMNT}/etc/systemd/system/sockets.target.wants"
@@ -108,6 +110,14 @@ device_image_tweaks() {
     "${ROOTFSMNT}/etc/systemd/system/sockets.target.wants/volumio-http.socket"
 
   rm -f "${ROOTFSMNT}/etc/systemd/system/multi-user.target.wants/iptables.service"
+
+  # Permissions for glass prepare and GPU drop-in
+  chmod 0755 "${ROOTFSMNT}/usr/local/sbin/gtkingpro-glass-prepare"
+  chown root:root "${ROOTFSMNT}/etc/systemd/system/gtkingpro-glass-prepare.service" "${ROOTFSMNT}/usr/local/sbin/gtkingpro-glass-prepare"
+  if [[ -f "${ROOTFSMNT}/etc/systemd/system/volumio.service.d/20-gtkingpro-gpu.conf" ]]; then
+    chown root:root "${ROOTFSMNT}/etc/systemd/system/volumio.service.d/20-gtkingpro-gpu.conf"
+    chmod 0644 "${ROOTFSMNT}/etc/systemd/system/volumio.service.d/20-gtkingpro-gpu.conf"
+  fi
 
   # Pre-install Glass Engine for HDMI visualizer & VU meters
   local glass_zip="${SRC}/../../board/gtkingpro/packages/glass-0.10.38.zip"
@@ -119,13 +129,14 @@ device_image_tweaks() {
   if [[ -f "${glass_zip}" ]]; then
     log "Pre-installing Glass Engine into image" "cfg"
     local glass_target="${ROOTFSMNT}/volumio/app/plugins/user_interface/glass"
-    mkdir -p "${glass_target}"
+    install -d "${glass_target}" "${glass_target}/asound"
     unzip -q -o "${glass_zip}" -d "${glass_target}"
+    ln -sfn armv7/libglasstap.so "${glass_target}/lib/libglasstap.so"
     chmod +x "${glass_target}/bin/"*/* "${glass_target}/run_glass.sh" 2>/dev/null || true
-    mkdir -p "${glass_target}/asound"
     cp "${glass_target}/Glass.postGlass.5.conf.tmpl" "${glass_target}/asound/Glass.postGlass.5.conf" 2>/dev/null || true
     sed -i "s|var asoundConf = __dirname + '/asound' + asound;|try { fs.mkdirSync(__dirname + '/asound', { recursive: true }); } catch (e) {}; var asoundConf = __dirname + '/asound' + asound;|" "${glass_target}/index.js" 2>/dev/null || true
   fi
+  chown -R 1000:1000 "${ROOTFSMNT}/volumio"
 }
 
 device_chroot_tweaks_pre() {
